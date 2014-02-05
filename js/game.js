@@ -8,7 +8,7 @@ function Game(id, width, height) {
     this.ctx = this.canvas.getContext("2d");
 
     this.player = {
-        acceleration: 0.05,
+        acceleration: 0.15,
         velocity: 0,
         displacement: height / 2
     };
@@ -22,13 +22,21 @@ function Game(id, width, height) {
     this.interval = null;
 
     this.space = false;
+    this.space_ready = true;
 
     var that = this;
 
     document.onkeydown = function(e) {
         //console.log("Keydown: " + e.keyCode);
         if (e.keyCode == 32)
+        {
             e.preventDefault();
+            if (that.space_ready)
+            {
+                that.space = true;
+                that.space_ready = false;
+            }
+        }
     };
 
     document.onkeyup = function(e) {
@@ -36,7 +44,7 @@ function Game(id, width, height) {
         if (e.keyCode == 32)
         {
             e.preventDefault();
-            that.space = true;
+            that.space_ready = true;
         }
     };
 
@@ -66,15 +74,13 @@ Game.prototype.update = function() {
     if (this.spaceTriggered())
     {
          console.log("space");
-	 this.player.velocity -= 5;
+         this.player.velocity -= 10;
     }
 
     this.player.velocity += this.player.acceleration;
     this.player.displacement += this.player.velocity;
 
     this.render();
-
-    this.ticks++;
 }
 
 Game.prototype.render = function() {
@@ -84,7 +90,7 @@ Game.prototype.render = function() {
     this.ctx.fillRect(0, 0, this.width, this.height);
     this.ctx.fillStyle = "rgb(0,0,0)";
 
-    this.ctx.fillRect(0, this.player.displacement, this.width, 10);
+    this.ctx.fillRect(200, this.player.displacement, 10, 10);
 
     this.ctx.restore();
     this.ctx.strokeRect(0, 0, this.width, this.height);
