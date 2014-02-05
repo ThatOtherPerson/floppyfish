@@ -7,9 +7,11 @@ function Game(id, width, height) {
     placeholder.parentNode.replaceChild(this.canvas, placeholder);
     this.ctx = this.canvas.getContext("2d");
 
+    this.state = this.stateEnum.STARTSCREEN;
+
     this.player = {
         acceleration: 0.15,
-        velocity: 0,
+        velocity: -5,
         displacement: height / 2
     };
 
@@ -22,7 +24,6 @@ function Game(id, width, height) {
     this.interval = null;
 
     this.space = false;
-    this.space_ready = true;
 
     var that = this;
 
@@ -31,11 +32,7 @@ function Game(id, width, height) {
         if (e.keyCode == 32)
         {
             e.preventDefault();
-            if (that.space_ready)
-            {
-                that.space = true;
-                that.space_ready = false;
-            }
+            that.space = true;
         }
     };
 
@@ -44,20 +41,18 @@ function Game(id, width, height) {
         if (e.keyCode == 32)
         {
             e.preventDefault();
-            that.space_ready = true;
+            that.space = false;
         }
     };
 
     this.load();
 }
 
-/*
 Game.prototype.stateEnum = {
     STARTSCREEN: 0,
     PLAY: 1,
     OVER: 2
 };
-*/
 
 Game.prototype.loadImage = function(filename) {
     var img = new Image();
@@ -71,14 +66,23 @@ Game.prototype.load = function() {
 }
 
 Game.prototype.update = function() {
-    if (this.spaceTriggered())
+    switch (this.state)
     {
-         console.log("space");
-         this.player.velocity -= 10;
+        case this.stateEnum.STARTSCREEN:
+            if (this.space)
+                this.state = this.stateEnum.PLAY;
+            break;
+        case this.stateEnum.PLAY:
+            if (this.space)
+                this.player.velocity = -4;
+
+            this.player.velocity += this.player.acceleration;
+            this.player.displacement += this.player.velocity;
+            break;
+        case this.stateEnum.OVER:
+            break;
     }
 
-    this.player.velocity += this.player.acceleration;
-    this.player.displacement += this.player.velocity;
 
     this.render();
 }
@@ -90,10 +94,10 @@ Game.prototype.render = function() {
     this.ctx.fillRect(0, 0, this.width, this.height);
     this.ctx.fillStyle = "rgb(0,0,0)";
 
-    this.ctx.fillRect(200, this.player.displacement, 10, 10);
+    this.ctx.fillRect(200, this.player.displacement, 30, 30);
 
     this.ctx.restore();
-    this.ctx.strokeRect(0, 0, this.width, this.height);
+    this.ctx.strokeRect(0.5, 0.5, this.width - 1, this.height - 1);
 }
 
 Game.prototype.start = function() {
@@ -108,9 +112,3 @@ Game.prototype.stop = function() {
 }
 
 Game.prototype.setSoundtrack = function(file) {}
-
-Game.prototype.spaceTriggered = function () {
-    var val = this.space;
-    this.space = false;
-    return val;
-};
