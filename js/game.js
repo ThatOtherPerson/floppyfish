@@ -128,8 +128,6 @@ Game.prototype.update = function() {
             this.player.velocity += this.player.acceleration * elapsed;
             this.player.y += this.player.velocity * elapsed;
 
-            if (this.player.y > this.height + this.player.width || this.player.y < -this.player.width)
-                this.state = this.stateEnum.OVER;
             this.player.rotation = ((this.player.velocity) + this.player.rotation * 2) / 3;
             if (this.player.rotation > (Math.PI / 2))
                 this.player.rotation = (Math.PI / 2);
@@ -137,7 +135,10 @@ Game.prototype.update = function() {
             var last_x = 0;
 
             var bounds = boundingBox(this.player);
-            
+
+            if (bounds.y + bounds.height > this.height || bounds.y < 0)
+                this.state = this.stateEnum.OVER;
+           
             for (var i = 0; i < this.obstacles.length; i++)
             {
                 this.obstacles[i].x += this.background_velocity * elapsed;
