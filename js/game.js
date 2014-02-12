@@ -7,14 +7,24 @@ function Game(id, width, height) {
     placeholder.parentNode.replaceChild(this.canvas, placeholder);
     this.ctx = this.canvas.getContext("2d");
 
+    this.debug = false;
+
     /// Images
 
-    this.startscreen = null;
-    this.gameover = null;
+    //this.startscreen = null;
+    //this.gameover = null;
+
+    this.fish_image = null;
+    this.mine = null;
+    this.chain = null;
 
     /// Audio
 
     this.theme = null;
+    this.bubbles = null;
+    this.explosion = null;
+
+    this.load();
 
     this.reset();
 
@@ -41,8 +51,6 @@ function Game(id, width, height) {
             that.space_ready = true;
         }
     };
-
-    this.load();
 }
 
 Game.prototype.reset = function()
@@ -52,10 +60,11 @@ Game.prototype.reset = function()
     this.state = this.stateEnum.STARTSCREEN;
 
     this.player = {
+        image: this.fish_image,
         acceleration: 0.0019,
         velocity: 0,
-        width: 40,
-        height: 28,
+        width: 39,
+        height: 32,
         rotation: 0,
         x: 0,
         y: 0,
@@ -64,7 +73,7 @@ Game.prototype.reset = function()
 
     this.background_velocity = -0.23;
 
-    this.obstacle_width = 50;
+    this.obstacle_width = 100;
     this.obstacle_gap = 170;
     this.obstacle_x_gap = 250;
 
@@ -89,20 +98,31 @@ Game.prototype.loadImage = function(filename) {
     return img;
 }
 
-Game.prototype.loadAudio = function(filename) {
+Game.prototype.loadAudio = function(filename, loop) {
     var audio = new Audio(filename);
-    audio.addEventListener('ended', function() {
+    if (loop)
+        audio.addEventListener('ended', function() {
         this.currentTime = 0;
         this.play();
-    }, false);
+        }, false);
     return audio;
 }
 
 Game.prototype.load = function() {
-    this.startscreen = this.loadImage("images/splash.png");
-    this.gameover = this.loadImage("images/gameover.png");
-    this.theme = this.loadAudio("audio/theme.mp3");
+    //this.startscreen = this.loadImage("images/splash.png");
+    this.fish_image = this.loadImage("images/fish.png");
+    this.mine = this.loadImage("images/mine.png");
+    this.chain = this.loadImage("images/chain.png");
+
+    this.theme = this.loadAudio("audio/theme.mp3", true);
+    this.bubbles = this.loadAudio("audio/bubbles.mp3");
+    this.explosion = this.loadAudio("audio/explosion.mp3");
 }
+
+Game.prototype.die = function() {
+    this.state = this.stateEnum.OVER;
+    this.explosion.play();
+};
 
 window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 
@@ -137,20 +157,21 @@ Game.prototype.update = function() {
             var bounds = boundingBox(this.player);
 
             if (bounds.y + bounds.height > this.height || bounds.y < 0)
-                this.state = this.stateEnum.OVER;
+                this.die();
            
             for (var i = 0; i < this.obstacles.length; i++)
             {
                 this.obstacles[i].x += this.background_velocity * elapsed;
                 if (collides(bounds, this.obstacles[i], this.obstacle_width, this.obstacle_gap))
                 {
-                    this.state = this.stateEnum.OVER;
+                    this.die();
                 }
                 if (this.obstacles[i].x + this.obstacle_width / 2 < this.player.x + this.player.width / 2 && !this.obstacles[i].scored)
                 {
                     this.obstacles[i].scored = true;
                     this.player.score++;
                     document.getElementById("fps").innerHTML = "Score: " + this.player.score;
+                    this.bubbles.play();
                 }
                 last_x = this.obstacles[i].x;
                 if (this.obstacles[i].x < -this.obstacle_width)
@@ -191,14 +212,43 @@ function renderPlayer(ctx, player)
 
     ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
     ctx.rotate(player.rotation);
+
+    ctx.drawImage(player.image, -player.width / 2, -player.height / 2, player.width, player.height);
+
+    /*
     ctx.fillRect(-player.width / 2, -player.height / 2, player.width, player.height);
     ctx.strokeRect((-player.width / 2) + 0.5, (-player.height / 2) + 0.5, player.width, player.height);
+    */
 
     ctx.restore();
 }
 
+function renderChain(ctx, chain, obstacle, obstacle_width, obstacle_height, height, obstacle_gap)
+{
+    var chain_kern = 15; /* should be elsewhere */
+
+    for (var y = obstacle.y - obstacle_height - chain.height + chain_kern; y > -chain.height; y -= chain.height - chain_kern)
+    {
+        ctx.drawImage(chain, obstacle.x + obstacle_width / 2 - chain.width / 2, y);
+    }
+
+    for (var y = obstacle.y + obstacle_gap + obstacle_height - chain_kern; y < height; y += chain.height - chain_kern)
+    {
+        ctx.drawImage(chain, obstacle.x + obstacle_width / 2 - chain.width / 2, y);
+    }
+}
+
+function renderObstacle(ctx, obstacle, obstacle_width, obstacle_height, obstacle_gap, mine, chain, height)
+{
+    renderChain(ctx, chain, obstacle, obstacle_width, obstacle_height, height, obstacle_gap);
+
+    ctx.drawImage(mine, obstacle.x, obstacle.y - obstacle_height, obstacle_width, obstacle_height);
+    ctx.drawImage(mine, obstacle.x, obstacle.y + obstacle_gap, obstacle_width, obstacle_height);
+
+}
+
 Game.prototype.render = function() {
-    this.ctx.fillStyle = "rgb(10,10,60)";
+    this.ctx.fillStyle = "rgb(40,70,90)";
     this.ctx.fillRect(0, 0, this.width, this.height);
     this.ctx.fillStyle = "rgb(50,120,110)";
 
@@ -206,24 +256,30 @@ Game.prototype.render = function() {
 
     this.ctx.fillStyle = "rgb(135, 115, 100)";
 
+    var obstacle_height = this.obstacle_width / game.mine.width * game.mine.height;
+
     for (var i = 0; i < this.obstacles.length; i++)
     {
-        this.ctx.fillRect(this.obstacles[i].x, 0, this.obstacle_width, this.obstacles[i].y);
-        this.ctx.strokeRect(this.obstacles[i].x + 0.5, 0.5, this.obstacle_width, this.obstacles[i].y);
-        this.ctx.fillRect(this.obstacles[i].x, this.height, this.obstacle_width, -(this.height - this.obstacle_gap - this.obstacles[i].y));
-        this.ctx.strokeRect(this.obstacles[i].x + 0.5, this.height + 0.5, this.obstacle_width, -(this.height - this.obstacle_gap - this.obstacles[i].y));
+        renderObstacle(this.ctx, this.obstacles[i], this.obstacle_width, obstacle_height, this.obstacle_gap, this.mine, this.chain, this.height);
     }
 
-    /* DISPLAY BOUNDING BOX
-    bound = boundingBox(this.player);
-    this.ctx.save();
-    this.ctx.strokeStyle = "rgb(255, 0, 0)";
-    this.ctx.strokeRect(bound.x, bound.y, bound.width, bound.height);
-    this.ctx.restore();
+    if (this.debug)
+    {
+        bound = boundingBox(this.player);
+        this.ctx.save();
+        this.ctx.strokeStyle = "rgb(255, 0, 0)";
+        this.ctx.strokeRect(bound.x, bound.y, bound.width, bound.height);
 
-    this.ctx.fillStyle = "rgb(255,0,0)";
-    this.ctx.fillRect(this.player.x + this.player.width / 2 - 4, this.player.y + this.player.height / 2 - 4, 8, 8);
-    */
+        for (var i = 0; i < this.obstacles.length; i++)
+        {
+            this.ctx.strokeRect(this.obstacles[i].x, 0, this.obstacle_width, this.obstacles[i].y);
+            this.ctx.strokeRect(this.obstacles[i].x, this.obstacles[i].y + this.obstacle_gap, this.obstacle_width, -this.obstacles[i].y + this.height);
+        }
+
+        this.ctx.fillStyle = "rgb(255,0,0)";
+        this.ctx.fillRect(this.player.x + this.player.width / 2 - 3, this.player.y + this.player.height / 2 - 3, 6, 6);
+        this.ctx.restore();
+    }
 
     this.ctx.strokeRect(0.5, 0.5, this.width - 1, this.height - 1);
 }
