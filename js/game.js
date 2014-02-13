@@ -175,7 +175,7 @@ Game.prototype.update = function() {
                     if (this.player.score > this.bestScore)
                     {
                         this.bestScore = this.Player.score;
-                        document.getElementById("bestScore").innerHTML = "Best:" + this.bestScore;
+                        document.getElementById("bestScore").innerHTML = "Best: " + this.bestScore;
                     }
                     document.getElementById("score").innerHTML = "Score: " + this.player.score;
                     this.bubbles.play();
