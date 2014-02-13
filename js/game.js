@@ -18,6 +18,8 @@ function Game(id, width, height) {
     this.mine = null;
     this.chain = null;
 
+    this.bestScore = 0;
+
     /// Audio
 
     this.theme = null;
@@ -170,7 +172,12 @@ Game.prototype.update = function() {
                 {
                     this.obstacles[i].scored = true;
                     this.player.score++;
-                    document.getElementById("fps").innerHTML = "Score: " + this.player.score;
+                    if (this.player.score > this.bestScore)
+                    {
+                        this.bestScore = this.Player.score;
+                        document.getElementById("bestScore").innerHTML = "Best:" + this.bestScore;
+                    }
+                    document.getElementById("score").innerHTML = "Score: " + this.player.score;
                     this.bubbles.play();
                 }
                 last_x = this.obstacles[i].x;
