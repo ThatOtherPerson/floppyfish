@@ -174,7 +174,7 @@ Game.prototype.update = function() {
                     this.player.score++;
                     if (this.player.score > this.bestScore)
                     {
-                        this.bestScore = this.Player.score;
+                        this.bestScore = this.player.score;
                         document.getElementById("bestScore").innerHTML = "Best: " + this.bestScore;
                     }
                     document.getElementById("score").innerHTML = "Score: " + this.player.score;

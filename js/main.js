@@ -9,7 +9,6 @@ window.onload = function()
 
     document.addEventListener("keydown", function(e)
     {
-        console.log(e);
         if (e.keyCode == codez[index])
         {
             index++;
