@@ -76,13 +76,13 @@ Game.prototype.reset = function()
     this.background_velocity = -0.23;
 
     this.obstacle_width = 100;
-    this.obstacle_gap = 170;
-    this.obstacle_x_gap = 250;
+    this.obstacle_gap = 250;
+    this.obstacle_x_gap = 230;
 
     this.obstacles = [];
 
-    this.player.y = this.height / 2 - this.player.height / 2;
-    this.player.x = this.width / 2 - this.player.width / 2;
+    this.player.y = this.height / 2;
+    this.player.x = this.width / 2;
 
     this.space = false;
     this.space_ready = true;
@@ -158,7 +158,7 @@ Game.prototype.update = function() {
 
             var bounds = boundingBox(this.player);
 
-            if (bounds.y + bounds.height > this.height || bounds.y < 0)
+            if (bounds.y + bounds.height / 2 > this.height || bounds.y - bounds.height / 2 < 0)
                 this.die();
            
             for (var i = 0; i < this.obstacles.length; i++)
@@ -168,7 +168,7 @@ Game.prototype.update = function() {
                 {
                     this.die();
                 }
-                if (this.obstacles[i].x + this.obstacle_width / 2 < this.player.x + this.player.width / 2 && !this.obstacles[i].scored)
+                if (this.obstacles[i].x < this.player.x&& !this.obstacles[i].scored)
                 {
                     this.obstacles[i].scored = true;
                     this.player.score++;
@@ -190,7 +190,7 @@ Game.prototype.update = function() {
 
             if (this.obstacles.length == 0 || last_x < this.width - this.obstacle_x_gap)
             {
-                this.obstacles.push({x: this.width, y: Math.floor(Math.random()*((this.height-this.obstacle_gap)-0+1)+0), scored: false});
+                this.obstacles.push({x: this.width + this.obstacle_width / 2, y: Math.floor(Math.random()*((this.height-this.obstacle_gap)-0+1)+0), scored: false});
             }
             break;
         case this.stateEnum.OVER:
@@ -217,7 +217,7 @@ function renderPlayer(ctx, player)
     // rotate and draw fish
     ctx.save();
 
-    ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+    ctx.translate(player.x, player.y);
     ctx.rotate(player.rotation);
 
     ctx.drawImage(player.image, -player.width / 2, -player.height / 2, player.width, player.height);
@@ -234,14 +234,14 @@ function renderChain(ctx, chain, obstacle, obstacle_width, obstacle_height, heig
 {
     var chain_kern = 15; /* should be elsewhere */
 
-    for (var y = obstacle.y - obstacle_height - chain.height + chain_kern; y > -chain.height; y -= chain.height - chain_kern)
+    for (var y = obstacle.y - obstacle_height / 2 - chain.height + chain_kern; y > -chain.height; y -= chain.height - chain_kern)
     {
-        ctx.drawImage(chain, obstacle.x + obstacle_width / 2 - chain.width / 2, y);
+        ctx.drawImage(chain, obstacle.x - chain.width / 2, y);
     }
 
-    for (var y = obstacle.y + obstacle_gap + obstacle_height - chain_kern; y < height; y += chain.height - chain_kern)
+    for (var y = obstacle.y + obstacle_gap + obstacle_height / 2 - chain_kern; y < height; y += chain.height - chain_kern)
     {
-        ctx.drawImage(chain, obstacle.x + obstacle_width / 2 - chain.width / 2, y);
+        ctx.drawImage(chain, obstacle.x - chain.width / 2, y);
     }
 }
 
@@ -249,8 +249,8 @@ function renderObstacle(ctx, obstacle, obstacle_width, obstacle_height, obstacle
 {
     renderChain(ctx, chain, obstacle, obstacle_width, obstacle_height, height, obstacle_gap);
 
-    ctx.drawImage(mine, obstacle.x, obstacle.y - obstacle_height, obstacle_width, obstacle_height);
-    ctx.drawImage(mine, obstacle.x, obstacle.y + obstacle_gap, obstacle_width, obstacle_height);
+    ctx.drawImage(mine, obstacle.x - obstacle_width / 2, obstacle.y - obstacle_height / 2, obstacle_width, obstacle_height);
+    ctx.drawImage(mine, obstacle.x - obstacle_width / 2, obstacle.y + obstacle_gap - obstacle_height / 2, obstacle_width, obstacle_height);
 
 }
 
@@ -275,19 +275,21 @@ Game.prototype.render = function() {
         bound = boundingBox(this.player);
         this.ctx.save();
         this.ctx.strokeStyle = "rgb(255, 0, 0)";
-        this.ctx.strokeRect(bound.x, bound.y, bound.width, bound.height);
+        this.ctx.strokeRect(bound.x - bound.width / 2, bound.y - bound.height / 2, bound.width, bound.height);
 
         for (var i = 0; i < this.obstacles.length; i++)
         {
-            this.ctx.strokeRect(this.obstacles[i].x, 0, this.obstacle_width, this.obstacles[i].y);
-            this.ctx.strokeRect(this.obstacles[i].x, this.obstacles[i].y + this.obstacle_gap, this.obstacle_width, -this.obstacles[i].y + this.height);
+            this.ctx.strokeRect(this.obstacles[i].x - this.obstacle_width / 2, 0, this.obstacle_width, this.obstacles[i].y + this.obstacle_width / 2);
+            this.ctx.strokeRect(this.obstacles[i].x - this.obstacle_width / 2, this.obstacles[i].y + this.obstacle_gap - this.obstacle_width / 2, this.obstacle_width, -this.obstacles[i].y + this.height);
         }
 
         this.ctx.fillStyle = "rgb(255,0,0)";
-        this.ctx.fillRect(this.player.x + this.player.width / 2 - 3, this.player.y + this.player.height / 2 - 3, 6, 6);
+        this.ctx.fillRect(this.player.x - 3, this.player.y - 3, 6, 6);
         this.ctx.restore();
     }
 
+    this.ctx.strokeRect(this.width / 2, 0, 1, this.height);
+    this.ctx.strokeRect(0, this.height / 2, this.width, 1);
     this.ctx.strokeRect(0.5, 0.5, this.width - 1, this.height - 1);
 }
 
@@ -305,9 +307,9 @@ Game.prototype.setSoundtrack = function(file) {}
 function collides(pb, obstacle, obstacle_width, obstacle_gap)
 {
 
-    if (pb.x + pb.width > obstacle.x && pb.x < obstacle.x + obstacle_width)
+    if (pb.x + pb.width / 2 > obstacle.x - obstacle_width / 2 && pb.x - pb.width / 2 < obstacle.x + obstacle_width / 2)
     {
-        if (pb.y < obstacle.y || pb.y + pb.height > obstacle.y + obstacle_gap)
+        if (pb.y - pb.height / 2 < obstacle.y + obstacle_width / 2 || pb.y + pb.height / 2 > obstacle.y + obstacle_gap - obstacle_width / 2)
             return true;
     }
     return false;
@@ -316,10 +318,10 @@ function collides(pb, obstacle, obstacle_width, obstacle_gap)
 function boundingBox(player)
 {
     var pv = [
-        {x: -player.width / 2, y: -player.height / 2},
-        {x: player.width / 2, y: -player.height / 2},
-        {x: player.width / 2, y: player.height / 2},
-        {x: -player.width / 2, y: player.height / 2}
+        {x: 0, y: 0},
+        {x: player.width, y: 0},
+        {x: player.width, y: player.height},
+        {x: 0, y: player.height}
     ];
 
     var max_x = false, max_y = false, min_x = false, min_y = false;
@@ -343,7 +345,7 @@ function boundingBox(player)
     var width = max_x - min_x;
     var height = max_y - min_y;
 
-    return {x: player.x - (width - player.width) / 2, y: player.y - (height - player.height) / 2, width: width, height: height};
+    return {x: player.x, y: player.y, width: width, height: height};
 }
 
 function rotate(x, y, theta)
