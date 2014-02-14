@@ -164,7 +164,7 @@ Game.prototype.update = function() {
             for (var i = 0; i < this.obstacles.length; i++)
             {
                 this.obstacles[i].x += this.background_velocity * elapsed;
-                if (collides(this.player, this.obstacles[i], this.obstacle_width, this.obstacle_gap, this.obstacle_radius))
+                if (collides(this.player, this.obstacles[i], this.obstacle_width, this.obstacle_gap, this.obstacle_radius, this.chain.width))
                 {
                     this.die();
                 }
@@ -298,6 +298,9 @@ Game.prototype.render = function() {
             this.ctx.arc(o.x, o.y, 4, 0, Math.PI * 2, false);
             this.ctx.arc(o.x, o.y + this.obstacle_gap, 4, 0, Math.PI * 2, false);
             this.ctx.fill();
+
+            this.ctx.strokeRect(o.x - this.chain.width / 2, 0, this.chain.width, o.y);
+            this.ctx.strokeRect(o.x - this.chain.width / 2, o.y + this.obstacle_gap, this.chain.width, this.height - (o.y + this.obstacle_gap));
        }
 
         this.ctx.restore();
@@ -317,14 +320,17 @@ Game.prototype.start = function() {
 
 Game.prototype.setSoundtrack = function(file) {}
 
-function collides(player, obstacle, obstacle_width, obstacle_gap, obstacle_radius)
+function collides(player, obstacle, obstacle_width, obstacle_gap, obstacle_radius, chain_width)
 {
     var distance_top = Math.sqrt(Math.pow(obstacle.x - player.x, 2) + Math.pow(obstacle.y - player.y, 2));
     var distance_bottom = Math.sqrt(Math.pow(obstacle.x - player.x, 2) + Math.pow(obstacle.y + obstacle_gap - player.y, 2));
 
-    if (distance_top < player.radius + obstacle_radius || distance_bottom < player.radius + obstacle_radius)
+    if (distance_top <= player.radius + obstacle_radius || distance_bottom <= player.radius + obstacle_radius)
     {
-        //console.log("distance", distance, "player.radius", player.radius, "player.x", player.x, "player.y", player.y, "obstacle_radius", obstacle_radius, "obstacle.x", obstacle.x, "obstacle.y", obstacle.y);
+        return true;
+    }
+    else if (player.x + player.radius >= obstacle.x - chain_width / 2 && player.x - player.radius <= obstacle.x + chain_width / 2 && (player.y - player.radius <= obstacle.y || player.y + player.radius >= obstacle.y + obstacle_gap))
+    {
         return true;
     }
 
